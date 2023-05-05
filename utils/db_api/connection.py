@@ -1,3 +1,4 @@
+import asyncio
 from typing import Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -8,18 +9,25 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from utils.db_api.base import Base
-from utils.db_api.models import Users, Conversations, Topics
+from utils.db_api.models import (
+    Users, Conversations, 
+    Topics, WaitList
+    )
 
 from data.config import DATABASE_URL
 
 
 class Database:
-    async def load(self) -> AsyncSession:
+    def get_engine(self):
         engine = create_async_engine(
             DATABASE_URL,
             future=True
         )
 
+        return engine
+
+    async def load(self) -> AsyncSession:
+        engine= self.get_engine()
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
@@ -29,7 +37,7 @@ class Database:
 
         self.async_session = async_sessionmaker
 
-    # ---For users---
+    # ---Users model---
 
     async def reg_user(self, user_id: str, username: str, first_name: str):
         """Регистрация пользователя"""
@@ -61,7 +69,7 @@ class Database:
             return response.scalars().all()
         
 
-    # ---For forums---    
+    # ---Forums model---    
     async def reg_topic(self, user_id, thread_id):
         async with self.async_session() as session:
             session: AsyncSession
@@ -84,3 +92,42 @@ class Database:
             elif thread_id:
                 response = await session.execute(select(Topics).where(Topics.message_thread_id == thread_id))
                 return response.scalar()
+
+
+    # ---WaitList---
+    async def reg_question(self, user_id, title, question):
+        async with self.async_session() as session:
+            session: AsyncSession
+            await session.merge(
+                WaitList(
+                    user_id=user_id,
+                    title=title,
+                    question=question
+                )
+            )
+            await session.commit()
+    
+    async def get_last_question(self, user_id):
+        async with self.async_session() as session:
+            stmt = select(WaitList).where(WaitList.user_id == user_id).order_by(WaitList.id.desc())
+            result = await session.execute(stmt)
+            first_value = result.scalars().first()
+        
+        return first_value
+
+
+    # ---Conversations model---
+    async def reg_conversation(self, user_id, title, question, answer=None):
+        async with self.async_session() as session:
+            session: AsyncSession
+            obj = await session.merge(
+                Conversations(
+                    user_id=user_id,
+                    title=title,
+                    question=question,
+                    answer=answer
+                )
+            )
+            await session.commit()
+        
+        return obj

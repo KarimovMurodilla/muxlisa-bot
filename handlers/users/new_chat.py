@@ -16,16 +16,21 @@ async def bot_new_chat(message: types.Message, state: FSMContext):
 @dp.message_handler(state=Bundle.step1)
 async def bot_new_chat(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        data['category'] = message.text
-        
-    await message.answer("So'rovingizni yuboring", reply_markup=keyboard_buttons.categories())
+        data['title'] = message.text
+
+    await message.answer("So'rovingizni yuboring", reply_markup=types.ReplyKeyboardRemove())
     await Bundle.next()
 
 
 @dp.message_handler(state=Bundle.step2)
-async def receiver(message: types.Message):
+async def question_receiver(message: types.Message, state: FSMContext):
     user = message.from_user
     topic = await db.get_topic(user.id)
+
+    async with state.proxy() as data:
+        title = data['title']
+
+    await db.reg_question(user.id, title, message.text)
 
     if not topic:
         forum = await bot.create_forum_topic(-1001684447791, user.first_name)

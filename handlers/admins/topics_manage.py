@@ -13,3 +13,6 @@ async def bot_manage_topics(message: types.Update):
     user = await db.get_topic(thread_id=thread_id)
     
     await bot.send_message(user.user_id, message.text)
+
+    res = await db.get_last_question(user.user_id)
+    await db.reg_conversation(user.user_id, res.title, res.question, message.text)
