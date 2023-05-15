@@ -10,3 +10,7 @@ ADMINS = env.list("ADMINS")  # Тут у нас будет список из а�
 
 # Database
 DATABASE_URL = env.str("DATABASE_URL")
+
+
+# Group
+GROUP_ID = env.str("GROUP_ID")

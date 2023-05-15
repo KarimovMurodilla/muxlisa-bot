@@ -27,7 +27,7 @@ class Database:
         return engine
 
     async def load(self) -> AsyncSession:
-        engine= self.get_engine()
+        engine = self.get_engine()
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
